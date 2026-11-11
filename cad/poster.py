@@ -36,13 +36,13 @@ def _panel(p, d, x, y, w, h):
 
 
 def _lines(spec):
-    out = [(f"кольцо Ø{spec.od:g} / Ø{spec.id:g}, ширина {spec.ring_wall:g}", INK),
+    out = [(f"основа Ø{spec.od:g} / Ø{spec.id:g}, ширина кольца {spec.ring_wall:g}", INK),
            (f"высота: {spec.z_hi:g} → {spec.z_lo:g} мм (smoothstep)", INK),
            (f"габарит: X = {2*spec.width_span:g}", INK)]
     for p in spec.pads:
-        if p.drilled:
+        if p.bored:
             out.append((f"{p.label} ({p.x:g}; {p.y:g}) — зона Ø{p.pad_dia:g}, "
-                        f"отв. Ø{p.hole_dia:g}", GREEN))
+                        f"углубление Ø{p.bore_dia:g}×{p.bore_depth:g}", GREEN))
         else:
             out.append((f"{p.label} ({p.x:g}; {p.y:g}) — сплошная Ø{p.pad_dia:g}", INK))
     return out
@@ -87,8 +87,10 @@ def build(slug, spec, title):
 
 
 def main():
-    build("part1", adapter.spec_part1(), "Деталь №1 — кольцо Ø163/Ø140")
-    build("part2", adapter.spec_part2(), "Деталь №2 — кольцо Ø135/Ø112,5")
+    build("part1", adapter.spec_part1(),
+          "Деталь №1 — высокая, слева (Ø135/Ø112,5)")
+    build("part2", adapter.spec_part2(),
+          "Деталь №2 — тонкая, справа (Ø163/Ø140)")
 
 
 if __name__ == "__main__":

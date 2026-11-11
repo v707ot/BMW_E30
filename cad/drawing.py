@@ -1,7 +1,8 @@
 """Dimensioned 2D technical drawings (PNG) for both adapters.
 
-TOP view (X-Y): ring and the six pads A..F with their centre coordinates,
-pad diameter and hole diameter.  FRONT view (Y-Z): smoothstep profile.
+TOP view (X-Y): base ring and the six pads (H = bored mounting zones,
+S = solid pads) with centre coordinates and diameters.
+FRONT view (Y-Z): smoothstep top profile.
 """
 
 from __future__ import annotations
@@ -49,12 +50,12 @@ def top_view(ax, spec):
     ax.add_patch(Circle((0, 0), r_in, fill=False, ec=INK, lw=1.5))
 
     for p in spec.pads:
-        col = MNT if p.drilled else INK
+        col = MNT if p.bored else INK
         ax.add_patch(Circle((p.x, p.y), p.pad_dia / 2.0, fill=False, ec=col, lw=1.4))
-        if p.drilled:
-            ax.add_patch(Circle((p.x, p.y), p.hole_dia / 2.0, fill=False, ec=col, lw=1.1))
+        if p.bored:
+            ax.add_patch(Circle((p.x, p.y), p.bore_dia / 2.0, fill=False, ec=col, lw=1.1))
         _mark(ax, p.x, p.y)
-        ax.text(p.x, p.y + 11, p.label, color=col, fontsize=14, fontweight="bold",
+        ax.text(p.x, p.y + 11, p.label, color=col, fontsize=13, fontweight="bold",
                 ha="center")
         ax.text(p.x, p.y - 13, f"({p.x:g}; {p.y:g})", color=col, fontsize=7, ha="center")
 
@@ -106,8 +107,9 @@ def sheet(spec, path):
     axes[0].set_title("ВИД СВЕРХУ  (X–Y)", fontsize=13, color=INK, pad=16)
     axes[1].set_title("ВИД СПЕРЕДИ  (Y–Z)", fontsize=13, color=INK, pad=16)
     fig.suptitle(f"{spec.name}   •   все размеры в мм   •   "
-                 "зелёный — крепёжные зоны, чёрный — сплошные площадки",
-                 fontsize=13, color=INK)
+                 "зелёный — крепёжные зоны H (с углублением), "
+                 "чёрный — сплошные площадки S",
+                 fontsize=12.5, color=INK)
     fig.tight_layout(rect=(0, 0, 1, 0.93))
     fig.savefig(path, facecolor="white")
     plt.close(fig)

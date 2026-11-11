@@ -1,4 +1,4 @@
-"""One combined sheet: both adapters side by side with their key elements."""
+"""One combined sheet: tall ring on the left, thin ring on the right."""
 
 from __future__ import annotations
 
@@ -32,15 +32,15 @@ def main():
     d = ImageDraw.Draw(p)
     d.text((80, 52), "Проставки под «китайские» фары — BMW E30",
            font=_font(54, True), fill=INK)
-    d.text((82, 130), "Две детали, построены по заданной системе координат   •   все размеры в мм",
+    d.text((82, 130), "Сборка: слева высокая деталь, справа тонкая   •   все размеры в мм",
            font=_font(28), fill=GREY)
     d.line((80, 186, W - 80, 186), fill=RULE, width=3)
 
-    cols = [("part1", adapter.spec_part1(), "Деталь №1 — Ø163 / Ø140"),
-            ("part2", adapter.spec_part2(), "Деталь №2 — Ø135 / Ø112,5")]
+    cols = [("part1", adapter.spec_part1(), "Слева — высокая, Ø135 / Ø112,5"),
+            ("part2", adapter.spec_part2(), "Справа — тонкая, Ø163 / Ø140")]
     for i, (slug, spec, title) in enumerate(cols):
         x0 = 80 + i * 1180
-        d.text((x0, 210), title, font=_font(36, True), fill=DIM)
+        d.text((x0, 210), title, font=_font(34, True), fill=DIM)
         d.rounded_rectangle((x0, 268, x0 + 1080, 830), 14,
                             fill=(250, 251, 253), outline=RULE, width=2)
         iso = _fit(Image.open(os.path.join(R, f"{slug}_iso.png")), 1000, 520)
@@ -52,17 +52,17 @@ def main():
         y = 1300
         d.text((x0 + 22, y), f"Ø{spec.od:g} / Ø{spec.id:g}   •   "
                f"высота {spec.z_hi:g} → {spec.z_lo:g}   •   "
-               f"габарит X = {2*spec.width_span:g}", font=_font(24, True), fill=INK)
-        y += 44
+               f"габарит X = {2*spec.width_span:g}", font=_font(23, True), fill=INK)
+        y += 42
         for pd in spec.pads:
-            if pd.drilled:
+            if pd.bored:
                 d.text((x0 + 22, y), f"{pd.label} ({pd.x:g}; {pd.y:g}) — "
-                       f"зона Ø{pd.pad_dia:g}, отв. Ø{pd.hole_dia:g}",
-                       font=_font(22), fill=GREEN)
+                       f"зона Ø{pd.pad_dia:g}, углубл. Ø{pd.bore_dia:g}×{pd.bore_depth:g}",
+                       font=_font(21), fill=GREEN)
             else:
                 d.text((x0 + 22, y), f"{pd.label} ({pd.x:g}; {pd.y:g}) — "
-                       f"сплошная Ø{pd.pad_dia:g}", font=_font(22), fill=INK)
-            y += 36
+                       f"сплошная Ø{pd.pad_dia:g}", font=_font(21), fill=INK)
+            y += 34
 
     out = os.path.join(R, "overview.png")
     p.save(out)
