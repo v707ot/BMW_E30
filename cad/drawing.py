@@ -54,6 +54,8 @@ def top_view(ax, spec):
         ax.add_patch(Circle((p.x, p.y), p.pad_dia / 2.0, fill=False, ec=col, lw=1.4))
         if p.bored:
             ax.add_patch(Circle((p.x, p.y), p.bore_dia / 2.0, fill=False, ec=col, lw=1.1))
+        if p.through:
+            ax.add_patch(Circle((p.x, p.y), p.through_dia / 2.0, fill=False, ec=col, lw=1.1))
         _mark(ax, p.x, p.y)
         ax.text(p.x, p.y + 11, p.label, color=col, fontsize=13, fontweight="bold",
                 ha="center")
@@ -107,7 +109,7 @@ def sheet(spec, path):
     axes[0].set_title("ВИД СВЕРХУ  (X–Y)", fontsize=13, color=INK, pad=16)
     axes[1].set_title("ВИД СПЕРЕДИ  (Y–Z)", fontsize=13, color=INK, pad=16)
     fig.suptitle(f"{spec.name}   •   все размеры в мм   •   "
-                 "зелёный — крепёжные зоны H (с углублением), "
+                 "зелёный — крепёжные зоны H (со сквозным отверстием), "
                  "чёрный — сплошные площадки S",
                  fontsize=12.5, color=INK)
     fig.tight_layout(rect=(0, 0, 1, 0.93))

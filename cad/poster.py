@@ -42,7 +42,8 @@ def _lines(spec):
     for p in spec.pads:
         if p.bored:
             out.append((f"{p.label} ({p.x:g}; {p.y:g}) — зона Ø{p.pad_dia:g}, "
-                        f"углубление Ø{p.bore_dia:g}×{p.bore_depth:g}", GREEN))
+                        f"углубление Ø{p.bore_dia:g}×{p.bore_depth:g}"
+                        + (f", сквозное Ø{p.through_dia:g}" if p.through else ""), GREEN))
         else:
             out.append((f"{p.label} ({p.x:g}; {p.y:g}) — сплошная Ø{p.pad_dia:g}", INK))
     return out

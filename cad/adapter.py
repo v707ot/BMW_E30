@@ -12,9 +12,12 @@ bottom plane (Z = 0).
 
 Each part carries six pads:
 
-* three big mounting zones H with a raised boss and a blind counterbore
-  (no central through hole);
+* three big mounting zones H with a raised boss, a blind counterbore and a
+  central coaxial through hole;
 * three solid pads S with no hole.
+
+The seat through-hole diameter is not given in the specification (the
+table marks it "on command"), so it defaults to ``SEAT_THROUGH_DIA``.
 
 The top surface follows the cubic smoothstep
     Z = Zmax - (Zmax - Zmin)(3t^2 - 2t^3),  t = (Y - Ymin)/(Ymax - Ymin)
@@ -27,20 +30,30 @@ from dataclasses import dataclass, field
 
 import cadquery as cq
 
+# Central coaxial through-hole diameter of the three big mounting seats.
+# The specification leaves it "on command" (not dimensioned), so a default
+# of Ø6 mm is assumed; change this single value to match the real fastener.
+SEAT_THROUGH_DIA = 6.0
+
 
 @dataclass(frozen=True)
 class Pad:
-    """Circular pad at (x, y): boss of ``pad_dia`` and optional counterbore."""
+    """Circular pad at (x, y): boss of ``pad_dia``, counterbore and through hole."""
     label: str
     x: float
     y: float
     pad_dia: float
     bore_dia: float = 0.0          # 0 = solid pad, no counterbore
     bore_depth: float = 0.0
+    through_dia: float = 0.0       # central coaxial through hole, 0 = none
 
     @property
     def bored(self) -> bool:
         return self.bore_dia > 0.0
+
+    @property
+    def through(self) -> bool:
+        return self.through_dia > 0.0
 
 
 @dataclass
@@ -112,6 +125,13 @@ def build(spec: AdapterSpec) -> cq.Workplane:
                             .circle(p.bore_dia / 2.0)
                             .extrude(z_max + 20 - bottom, taper=0)
                             .translate((0, 0, bottom)))
+    # central coaxial through holes of the mounting seats
+    for p in spec.pads:
+        if p.through:
+            body = body.cut(cq.Workplane("XY").center(p.x, p.y)
+                            .circle(p.through_dia / 2.0)
+                            .extrude(z_max + 20, taper=0)
+                            .translate((0, 0, -10)))
     return body
 
 
@@ -125,9 +145,9 @@ def spec_part1() -> AdapterSpec:
         od=135.0, id=112.5,
         z_hi=39.0, z_lo=34.0, y_min=-72.5, y_max=67.5,
         pads=(
-            Pad("H1", -63.27430, -0.26276, 18.45, 10.16, 2.5),
-            Pad("H2", 63.27444, 0.26286, 18.45, 10.16, 2.5),
-            Pad("H3", 0.26274, -63.27459, 18.45, 10.16, 2.5),
+            Pad("H1", -63.27430, -0.26276, 18.45, 10.16, 2.5, SEAT_THROUGH_DIA),
+            Pad("H2", 63.27444, 0.26286, 18.45, 10.16, 2.5, SEAT_THROUGH_DIA),
+            Pad("H3", 0.26274, -63.27459, 18.45, 10.16, 2.5, SEAT_THROUGH_DIA),
             Pad("S1", -56.0, 31.0, 11.0),
             Pad("S2", 56.0, -30.0, 11.0),
             Pad("S3", -30.0, -55.0, 11.0),
@@ -142,9 +162,9 @@ def spec_part2() -> AdapterSpec:
         od=163.0, id=140.0,
         z_hi=9.0, z_lo=6.0, y_min=-85.5, y_max=81.5,
         pads=(
-            Pad("H1", -73.5, 18.5, 19.0, 10.16, 2.5),
-            Pad("H2", 65.5, 37.5, 19.0, 10.16, 2.5),
-            Pad("H3", -37.75, -65.4, 19.0, 10.16, 2.5),
+            Pad("H1", -73.5, 18.5, 19.0, 10.16, 2.5, SEAT_THROUGH_DIA),
+            Pad("H2", 65.5, 37.5, 19.0, 10.16, 2.5, SEAT_THROUGH_DIA),
+            Pad("H3", -37.75, -65.4, 19.0, 10.16, 2.5, SEAT_THROUGH_DIA),
             Pad("S1", -80.0, 0.0, 11.0),
             Pad("S2", 80.0, 0.0, 11.0),
             Pad("S3", 0.0, -80.0, 11.0),

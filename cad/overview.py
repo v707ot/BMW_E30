@@ -57,7 +57,8 @@ def main():
         for pd in spec.pads:
             if pd.bored:
                 d.text((x0 + 22, y), f"{pd.label} ({pd.x:g}; {pd.y:g}) — "
-                       f"зона Ø{pd.pad_dia:g}, углубл. Ø{pd.bore_dia:g}×{pd.bore_depth:g}",
+                       f"зона Ø{pd.pad_dia:g}, углубл. Ø{pd.bore_dia:g}×{pd.bore_depth:g}"
+                       + (f", сквозное Ø{pd.through_dia:g}" if pd.through else ""),
                        font=_font(21), fill=GREEN)
             else:
                 d.text((x0 + 22, y), f"{pd.label} ({pd.x:g}; {pd.y:g}) — "
