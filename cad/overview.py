@@ -12,7 +12,7 @@ import adapter  # noqa: E402
 
 R = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "renders")
 INK, DIM, GREY, RULE = (18, 18, 18), (11, 87, 164), (108, 114, 122), (222, 226, 232)
-GREEN, PURPLE = (26, 122, 60), (120, 60, 170)
+GREEN = (26, 122, 60)
 
 
 def _font(s, b=False):
@@ -37,7 +37,7 @@ def main():
     d.line((80, 186, W - 80, 186), fill=RULE, width=3)
 
     cols = [("part1", adapter.spec_part1(), "Деталь №1 — Ø163 / Ø140"),
-            ("part2", adapter.spec_part2(), "Деталь №2 — Ø145")]
+            ("part2", adapter.spec_part2(), "Деталь №2 — Ø135 / Ø112,5")]
     for i, (slug, spec, title) in enumerate(cols):
         x0 = 80 + i * 1180
         d.text((x0, 210), title, font=_font(36, True), fill=DIM)
@@ -51,19 +51,17 @@ def main():
         p.paste(drw, (x0 + (1080 - drw.width) // 2, 878))
         y = 1300
         d.text((x0 + 22, y), f"Ø{spec.od:g} / Ø{spec.id:g}   •   "
-               f"высота {spec.z_hi:g} → {spec.z_lo:g}", font=_font(25, True), fill=INK)
-        y += 42
-        for s in spec.slots:
-            d.text((x0 + 22, y), f"паз {s.label} ({s.x:g}; {s.y:g}) {s.length:g}×{s.width:g}",
-                   font=_font(22), fill=PURPLE)
-            y += 36
+               f"высота {spec.z_hi:g} → {spec.z_lo:g}   •   "
+               f"габарит X = {2*spec.width_span:g}", font=_font(24, True), fill=INK)
+        y += 44
         for pd in spec.pads:
-            d.text((x0 + 22, y), f"ушко {pd.label} ({pd.x:g}; {pd.y:g}) Ø{pd.pad_dia:g}",
-                   font=_font(22), fill=INK)
-            y += 36
-        for h in spec.holes:
-            d.text((x0 + 22, y), f"отв. {h.label} ({h.x:g}; {h.y:g}) Ø{h.dia:g}",
-                   font=_font(22), fill=GREEN)
+            if pd.drilled:
+                d.text((x0 + 22, y), f"{pd.label} ({pd.x:g}; {pd.y:g}) — "
+                       f"зона Ø{pd.pad_dia:g}, отв. Ø{pd.hole_dia:g}",
+                       font=_font(22), fill=GREEN)
+            else:
+                d.text((x0 + 22, y), f"{pd.label} ({pd.x:g}; {pd.y:g}) — "
+                       f"сплошная Ø{pd.pad_dia:g}", font=_font(22), fill=INK)
             y += 36
 
     out = os.path.join(R, "overview.png")

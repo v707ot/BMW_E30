@@ -1,7 +1,7 @@
 """Dimensioned 2D technical drawings (PNG) for both adapters.
 
-TOP view (X-Y): ring, every element (holes, pads/ears, slot) with its
-centre coordinates.  FRONT view (Y-Z): the smoothstep top profile.
+TOP view (X-Y): ring and the six pads A..F with their centre coordinates,
+pad diameter and hole diameter.  FRONT view (Y-Z): smoothstep profile.
 """
 
 from __future__ import annotations
@@ -12,14 +12,14 @@ import sys
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from matplotlib.patches import Circle, Polygon, FancyBboxPatch
+from matplotlib.patches import Circle, Polygon
 
 sys.path.insert(0, os.path.dirname(__file__))
 import adapter  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(os.path.dirname(HERE), "renders")
-INK, DIM, AUX, MNT, SLOT = "#141414", "#0b57a4", "#b23b3b", "#1a7a3c", "#a24bcc"
+INK, DIM, AUX, MNT = "#141414", "#0b57a4", "#b23b3b", "#1a7a3c"
 
 
 def _dim_h(ax, x0, x1, y, text, size=10):
@@ -49,37 +49,21 @@ def top_view(ax, spec):
     ax.add_patch(Circle((0, 0), r_in, fill=False, ec=INK, lw=1.5))
 
     for p in spec.pads:
-        ax.add_patch(Circle((p.x, p.y), p.pad_dia / 2.0, fill=False, ec=INK, lw=1.4))
-        if p.hole_dia > 0:
-            ax.add_patch(Circle((p.x, p.y), p.hole_dia / 2.0, fill=False, ec=INK, lw=1.0))
+        col = MNT if p.drilled else INK
+        ax.add_patch(Circle((p.x, p.y), p.pad_dia / 2.0, fill=False, ec=col, lw=1.4))
+        if p.drilled:
+            ax.add_patch(Circle((p.x, p.y), p.hole_dia / 2.0, fill=False, ec=col, lw=1.1))
         _mark(ax, p.x, p.y)
-        ax.text(p.x, p.y + 10, p.label, color=INK, fontsize=13, fontweight="bold", ha="center")
-        ax.text(p.x, p.y - 11, f"({p.x:g}; {p.y:g})", color=INK, fontsize=7, ha="center")
-
-    for h in spec.holes:
-        ax.add_patch(Circle((h.x, h.y), h.dia / 2.0, fill=False, ec=MNT, lw=1.2))
-        _mark(ax, h.x, h.y)
-        ax.text(h.x, h.y + 10, h.label, color=MNT, fontsize=12, fontweight="bold", ha="center")
-        ax.text(h.x, h.y - 11, f"({h.x:g}; {h.y:g})", color=MNT, fontsize=7, ha="center")
-
-    for s in spec.slots:
-        ax.add_patch(FancyBboxPatch((s.x - s.length / 2, s.y - s.width / 2),
-                                    s.length, s.width,
-                                    boxstyle="round,pad=0,rounding_size=1",
-                                    fill=False, ec=SLOT, lw=1.3,
-                                    transform=matplotlib.transforms.Affine2D()
-                                    .rotate_deg_around(s.x, s.y, s.angle)
-                                    + ax.transData))
-        _mark(ax, s.x, s.y)
-        ax.text(s.x, s.y + 10, s.label, color=SLOT, fontsize=13, fontweight="bold", ha="center")
-        ax.text(s.x, s.y - 13, f"({s.x:g}; {s.y:g})", color=SLOT, fontsize=7, ha="center")
+        ax.text(p.x, p.y + 11, p.label, color=col, fontsize=14, fontweight="bold",
+                ha="center")
+        ax.text(p.x, p.y - 13, f"({p.x:g}; {p.y:g})", color=col, fontsize=7, ha="center")
 
     ax.plot([-r_out - 16, r_out + 16], [0, 0], color=AUX, lw=0.7, dashes=(9, 3, 2, 3))
     ax.plot([0, 0], [-r_out - 16, r_out + 16], color=AUX, lw=0.7, dashes=(9, 3, 2, 3))
 
     _dim_h(ax, -r_out, r_out, r_out + 9, f"Ø{spec.od:g}")
     _dim_h(ax, -r_in, r_in, -r_out - 9, f"Ø{spec.id:g}")
-    ax.text(0, -r_out - 22, f"ширина кольца {spec.ring_wall:g}", color=DIM,
+    ax.text(0, -r_out - 24, f"ширина кольца {spec.ring_wall:g}", color=DIM,
             fontsize=9, ha="center")
 
     lim = max(spec.width_span, 60) + 30
@@ -122,7 +106,7 @@ def sheet(spec, path):
     axes[0].set_title("ВИД СВЕРХУ  (X–Y)", fontsize=13, color=INK, pad=16)
     axes[1].set_title("ВИД СПЕРЕДИ  (Y–Z)", fontsize=13, color=INK, pad=16)
     fig.suptitle(f"{spec.name}   •   все размеры в мм   •   "
-                 "зелёный — отверстия, чёрный — ушки, фиолетовый — паз",
+                 "зелёный — крепёжные зоны, чёрный — сплошные площадки",
                  fontsize=13, color=INK)
     fig.tight_layout(rect=(0, 0, 1, 0.93))
     fig.savefig(path, facecolor="white")

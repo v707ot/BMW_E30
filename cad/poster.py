@@ -16,7 +16,7 @@ R = os.path.join(ROOT, "renders")
 
 BG, INK, DIM, GREY, RULE = (255, 255, 255), (18, 18, 18), (11, 87, 164), \
     (108, 114, 122), (222, 226, 232)
-GREEN, PURPLE = (26, 122, 60), (120, 60, 170)
+GREEN = (26, 122, 60)
 
 
 def _font(size, bold=False):
@@ -37,15 +37,14 @@ def _panel(p, d, x, y, w, h):
 
 def _lines(spec):
     out = [(f"кольцо Ø{spec.od:g} / Ø{spec.id:g}, ширина {spec.ring_wall:g}", INK),
-           (f"высота: {spec.z_hi:g} → {spec.z_lo:g} мм (smoothstep)", INK)]
-    for s in spec.slots:
-        out.append((f"паз {s.label} ({s.x:g}; {s.y:g}) — {s.length:g}×{s.width:g} мм, "
-                    f"{s.angle:g}°", PURPLE))
+           (f"высота: {spec.z_hi:g} → {spec.z_lo:g} мм (smoothstep)", INK),
+           (f"габарит: X = {2*spec.width_span:g}", INK)]
     for p in spec.pads:
-        out.append((f"ушко {p.label} ({p.x:g}; {p.y:g}) — площадка Ø{p.pad_dia:g}, "
-                    f"отв. Ø{p.hole_dia:g}", INK))
-    for h in spec.holes:
-        out.append((f"отверстие {h.label} ({h.x:g}; {h.y:g}) — Ø{h.dia:g}", GREEN))
+        if p.drilled:
+            out.append((f"{p.label} ({p.x:g}; {p.y:g}) — зона Ø{p.pad_dia:g}, "
+                        f"отв. Ø{p.hole_dia:g}", GREEN))
+        else:
+            out.append((f"{p.label} ({p.x:g}; {p.y:g}) — сплошная Ø{p.pad_dia:g}", INK))
     return out
 
 
@@ -76,7 +75,7 @@ def build(slug, spec, title):
         d.text((bx + 20, 1290), cap, font=_font(24), fill=GREY)
 
     _panel(p, d, 1100, 1010, 1040, 470)
-    d.text((1128, 1030), "Элементы и размеры", font=_font(30, True), fill=INK)
+    d.text((1128, 1030), "Площадки и размеры", font=_font(30, True), fill=INK)
     y = 1088
     for txt, col in _lines(spec):
         d.text((1130, y), "•  " + txt, font=_font(24), fill=col)
@@ -89,7 +88,7 @@ def build(slug, spec, title):
 
 def main():
     build("part1", adapter.spec_part1(), "Деталь №1 — кольцо Ø163/Ø140")
-    build("part2", adapter.spec_part2(), "Деталь №2 — кольцо Ø145")
+    build("part2", adapter.spec_part2(), "Деталь №2 — кольцо Ø135/Ø112,5")
 
 
 if __name__ == "__main__":

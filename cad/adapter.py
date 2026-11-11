@@ -1,19 +1,21 @@
 """BMW E30 headlight adapter rings ("China" headlight spacers).
 
-Coordinate system (millimetres): ring centre O = (0; 0; 0); X horizontal,
-Y vertical, Z height; top view uses X-Y.
+Final specification (millimetres).
 
-Elements are given by their centre coordinates and the top-surface height
-at that point.  The top surface follows the cubic smoothstep
+Coordinate system: ring centre O = (0; 0; 0); +X right, -X left, +Y up,
+-Y down; Z = 0 is the bottom plane; top view uses X-Y.
+
+Each part is a ring with six circular pads:
+
+* three big mounting zones A, B, C (pad D15) carrying a through hole;
+* three solid pads D, E, F (D11) with no hole.
+
+The top surface follows the cubic smoothstep
     Z = Zmax - (Zmax - Zmin)(3t^2 - 2t^3),  t = (Y - Ymin)/(Ymax - Ymin)
-which reproduces every tabulated value to < 0.002 mm.
+which reproduces every tabulated value to better than 0.002 mm.
 
-Part 1 - ring OD 163 / ID 140, height 9 -> 6
-    pads (mounting seats) A, B, C; ears D, E, F on the outer contour.
-Part 2 - ring OD 145 / ID 112.5, height 39 -> 34
-    slot S1 and pads S2, S3; three holes H1, H2, H3 from the STL.
-    The three outer-contour points of the earlier sketch are NOT used
-    here, so nothing is duplicated.
+Part 1 - ring OD 163 / ID 140, height 9 -> 6, envelope 171 x 167
+Part 2 - ring OD 135 / ID 112.5, height 39 -> 34, envelope 145 x 140
 """
 
 from __future__ import annotations
@@ -24,33 +26,17 @@ import cadquery as cq
 
 
 @dataclass(frozen=True)
-class Hole:
-    """A through hole at (x, y) of diameter ``dia``."""
-    label: str
-    x: float
-    y: float
-    dia: float
-
-
-@dataclass(frozen=True)
 class Pad:
-    """A round boss of ``pad_dia`` at (x, y) with an optional through hole."""
+    """A circular pad of ``pad_dia`` at (x, y) with an optional through hole."""
     label: str
     x: float
     y: float
     pad_dia: float
     hole_dia: float = 0.0
 
-
-@dataclass(frozen=True)
-class Slot:
-    """A through slot of ``length`` x ``width`` at (x, y), rotated ``angle``."""
-    label: str
-    x: float
-    y: float
-    length: float
-    width: float
-    angle: float
+    @property
+    def drilled(self) -> bool:
+        return self.hole_dia > 0.0
 
 
 @dataclass
@@ -62,9 +48,7 @@ class AdapterSpec:
     z_lo: float                    # height at Ymax (upper side)
     y_min: float                   # smoothstep lower bound
     y_max: float                   # smoothstep upper bound
-    pads: tuple = ()               # Pad (bosses, e.g. ears)
-    holes: tuple = ()              # Hole (through holes in the ring)
-    slots: tuple = ()              # Slot
+    pads: tuple = ()               # Pad
 
     @property
     def outer_r(self) -> float:
@@ -97,24 +81,18 @@ class AdapterSpec:
         return self.z_hi - (self.z_hi - self.z_lo) * (3.0 * t * t - 2.0 * t * t * t)
 
 
-def _pad(p: Pad, height: float) -> cq.Workplane:
-    return (cq.Workplane("XY").center(p.x, p.y)
-            .circle(p.pad_dia / 2.0).extrude(height))
-
-
 def build(spec: AdapterSpec) -> cq.Workplane:
     """Return the finished adapter as a CadQuery solid."""
     r_out, r_in, z_max = spec.outer_r, spec.inner_r, spec.z_max
 
     body = cq.Workplane("XY").circle(r_out).extrude(z_max)
     for p in spec.pads:
-        body = body.union(_pad(p, z_max))
+        body = body.union(cq.Workplane("XY").center(p.x, p.y)
+                          .circle(p.pad_dia / 2.0).extrude(z_max))
     body = body.cut(cq.Workplane("XY").circle(r_in).extrude(z_max + 10))
 
     # smoothstep top face
-    span = max(abs(spec.y_min), abs(spec.y_max))
-    for p in spec.pads:
-        span = max(span, abs(p.y) + p.pad_dia)
+    span = spec.width_span
     n = 360
     ys = [-span + 2.0 * span * i / n for i in range(n + 1)]
     prof = [(y, spec.z_of_y(y)) for y in ys]
@@ -122,55 +100,43 @@ def build(spec: AdapterSpec) -> cq.Workplane:
     body = body.cut(cq.Workplane("YZ").polyline(prof).close()
                     .extrude(r_out + 60, both=True))
 
-    for h in spec.holes:
-        body = body.cut(cq.Workplane("XY").center(h.x, h.y)
-                        .circle(h.dia / 2.0).extrude(z_max + 10))
     for p in spec.pads:
-        if p.hole_dia > 0:
+        if p.drilled:
             body = body.cut(cq.Workplane("XY").center(p.x, p.y)
                             .circle(p.hole_dia / 2.0).extrude(z_max + 10))
-    for s in spec.slots:
-        cut = (cq.Workplane("XY").center(s.x, s.y)
-               .slot2D(s.length - s.width, s.width)
-               .extrude(z_max + 10))
-        body = body.cut(cut.rotate((s.x, s.y, 0), (s.x, s.y, 1), s.angle))
     return body
 
 
 def spec_part1() -> AdapterSpec:
-    """Ring OD163 / ID140; pads A,B,C; ears D,E,F (width 171, height 167)."""
+    """Ring OD163 / ID140; big zones A, B, C; solid pads D, E, F."""
     return AdapterSpec(
         name="part1_ring_163",
         od=163.0, id=140.0,
-        z_hi=9.0, z_lo=6.0, y_min=-81.5, y_max=81.5,
-        holes=(
-            Hole("A", -71.0, 17.0, 6.0),
-            Hole("B", 65.0, 35.0, 6.0),
-            Hole("C", -38.0, -63.0, 6.0),
-        ),
+        z_hi=9.0, z_lo=6.0, y_min=-85.5, y_max=81.5,
         pads=(
-            Pad("D", -78.0, 0.0, 15.0, 6.0),
-            Pad("E", 78.0, 0.0, 15.0, 6.0),
-            Pad("F", 0.0, -78.0, 15.0, 6.0),
+            Pad("A", -71.0, 17.0, 15.0, 10.1588),
+            Pad("B", 62.0, 35.0, 15.0, 10.1588),
+            Pad("C", -39.0, -60.0, 15.0, 10.1588),
+            Pad("D", -80.0, 0.0, 11.0),
+            Pad("E", 80.0, 0.0, 11.0),
+            Pad("F", 0.0, -80.0, 11.0),
         ),
     )
 
 
 def spec_part2() -> AdapterSpec:
-    """Ring OD145 / ID112.5; slot S1; pads S2,S3; STL holes H1,H2,H3."""
+    """Ring OD135 / ID112.5; big zones A, B, C; solid pads D, E, F."""
     return AdapterSpec(
-        name="part2_ring_145",
-        od=145.0, id=112.5,
-        z_hi=39.0, z_lo=34.0, y_min=-72.5, y_max=72.5,
-        holes=(
-            Hole("S2", 66.0, -26.0, 6.0),
-            Hole("S3", -19.0, -68.0, 6.0),
-            Hole("H1", -63.27430, -0.26276, 10.15880),
-            Hole("H2", 63.27444, 0.26286, 10.15884),
-            Hole("H3", 0.26274, -63.27459, 10.15881),
-        ),
-        slots=(
-            Slot("S1", -61.0, 31.0, 12.0, 2.0, -25.0),
+        name="part2_ring_135",
+        od=135.0, id=112.5,
+        z_hi=39.0, z_lo=34.0, y_min=-72.5, y_max=67.5,
+        pads=(
+            Pad("A", -54.929, 31.410, 15.0, 10.1588),
+            Pad("B", 54.929, -31.410, 15.0, 10.1588),
+            Pad("C", -31.410, -54.929, 15.0, 10.1588),
+            Pad("D", -67.0, 0.0, 11.0),
+            Pad("E", 67.0, 0.0, 11.0),
+            Pad("F", 0.0, -67.0, 11.0),
         ),
     )
 
