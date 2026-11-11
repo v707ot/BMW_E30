@@ -16,12 +16,12 @@ R = os.path.join(ROOT, "renders")
 
 BG, INK, DIM, GREY, RULE = (255, 255, 255), (18, 18, 18), (11, 87, 164), \
     (108, 114, 122), (222, 226, 232)
+GREEN, PURPLE = (26, 122, 60), (120, 60, 170)
 
 
 def _font(size, bold=False):
     p = f"/usr/share/fonts/truetype/dejavu/DejaVuSans{'-Bold' if bold else ''}.ttf"
-    return ImageFont.truetype(p, size) if os.path.exists(p) \
-        else ImageFont.load_default()
+    return ImageFont.truetype(p, size) if os.path.exists(p) else ImageFont.load_default()
 
 
 def _fit(im, bw, bh):
@@ -30,17 +30,22 @@ def _fit(im, bw, bh):
     return im.resize((int(im.width * s), int(im.height * s)), Image.LANCZOS)
 
 
+def _panel(p, d, x, y, w, h):
+    d.rounded_rectangle((x, y, x + w, y + h), 14, fill=(250, 251, 253),
+                        outline=RULE, width=2)
+
+
 def _lines(spec):
-    out = [
-        f"кольцо Ø{spec.od:g} / Ø{spec.id:g}, ширина {spec.ring_wall:g}",
-        f"высота: {spec.z_hi:g} → {spec.z_lo:g} мм (smoothstep)",
-    ]
-    for e in spec.mounts:
-        out.append(f"посадка {e.label} ({e.x:g}; {e.y:g}) — "
-                   f"площадка Ø{e.pad_dia:g}, отв. Ø{e.hole_dia:g}")
-    for e in spec.contour:
-        out.append(f"контур {e.label} ({e.x:g}; {e.y:g}) — "
-                   f"площадка Ø{e.pad_dia:g}")
+    out = [(f"кольцо Ø{spec.od:g} / Ø{spec.id:g}, ширина {spec.ring_wall:g}", INK),
+           (f"высота: {spec.z_hi:g} → {spec.z_lo:g} мм (smoothstep)", INK)]
+    for s in spec.slots:
+        out.append((f"паз {s.label} ({s.x:g}; {s.y:g}) — {s.length:g}×{s.width:g} мм, "
+                    f"{s.angle:g}°", PURPLE))
+    for p in spec.pads:
+        out.append((f"ушко {p.label} ({p.x:g}; {p.y:g}) — площадка Ø{p.pad_dia:g}, "
+                    f"отв. Ø{p.hole_dia:g}", INK))
+    for h in spec.holes:
+        out.append((f"отверстие {h.label} ({h.x:g}; {h.y:g}) — Ø{h.dia:g}", GREEN))
     return out
 
 
@@ -48,7 +53,7 @@ def build(slug, spec, title):
     W, H = 2200, 1560
     p = Image.new("RGB", (W, H), BG)
     d = ImageDraw.Draw(p)
-    d.text((80, 52), title, font=_font(58, True), fill=INK)
+    d.text((80, 52), title, font=_font(56, True), fill=INK)
     d.text((82, 130), "Проставки под «китайские» фары BMW E30   •   все размеры в мм",
            font=_font(29), fill=GREY)
     d.line((80, 186, W - 80, 186), fill=RULE, width=3)
@@ -72,19 +77,14 @@ def build(slug, spec, title):
 
     _panel(p, d, 1100, 1010, 1040, 470)
     d.text((1128, 1030), "Элементы и размеры", font=_font(30, True), fill=INK)
-    y = 1090
-    for ln in _lines(spec):
-        d.text((1130, y), "•  " + ln, font=_font(25), fill=INK)
-        y += 46
+    y = 1088
+    for txt, col in _lines(spec):
+        d.text((1130, y), "•  " + txt, font=_font(24), fill=col)
+        y += 42
 
     out = os.path.join(R, f"{slug}_poster.png")
     p.save(out)
     print("wrote", out)
-
-
-def _panel(p, d, x, y, w, h):
-    d.rounded_rectangle((x, y, x + w, y + h), 14, fill=(250, 251, 253),
-                        outline=RULE, width=2)
 
 
 def main():
